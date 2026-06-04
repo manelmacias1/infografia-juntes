@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infografia Juntes d'Avaluació - Institut de l'Ebre</title>
+    <!-- Tailwind CSS per als estils directes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Llibreries de React per al funcionament reactiu -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel per compilar JSX en temps real al navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Icones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Contenidor principal de React -->
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Desestructurem les icones que utilitzarem de Lucide
+        const AlertTriangle = () => <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-500"></i>;
+        const CheckCircle2 = ({ className }) => <i data-lucide="check-circle-2" class={className || "w-5 h-5 text-green-500"}></i>;
+        const XCircle = ({ className }) => <i data-lucide="x-circle" class={className || "w-5 h-5 text-red-500"}></i>;
+        const Clock = ({ className }) => <i data-lucide="clock" class={className || "w-5 h-5 text-yellow-500"}></i>;
+        const GraduationCap = ({ className }) => <i data-lucide="graduation-cap" class={className || "w-6 h-6 text-teal-600"}></i>;
+        const Users = () => <i data-lucide="users" class="w-6 h-6 text-blue-500"></i>;
+        const BookOpen = () => <i data-lucide="book-open" class="w-6 h-6 text-indigo-500"></i>;
+        const Briefcase = () => <i data-lucide="briefcase" class="w-6 h-6 text-indigo-700"></i>;
+        const Info = ({ className }) => <i data-lucide="info" class={className || "w-5 h-5 text-slate-400"}></i>;
+        const Calendar = () => <i data-lucide="calendar" class="w-5 h-5 text-blue-300"></i>;
+        const AlertOctagon = () => <i data-lucide="alert-triangle" class="w-8 h-8 text-yellow-400"></i>;
+        const FileSignature = () => <i data-lucide="file-signature" class="w-5 h-5 text-blue-500"></i>;
+        const Calculator = () => <i data-lucide="calculator" class="w-6 h-6"></i>;
+
+        // Component Card reutilitzable
+        const Card = ({ title, children, icon: IconComponent, colorClass, borderColorClass }) => (
+            <div className={`bg-white rounded-xl shadow-md overflow-hidden border-t-4 ${borderColorClass} flex flex-col h-full`}>
+                <div className={`p-4 flex items-center space-x-3 ${colorClass} bg-opacity-10 border-b border-gray-100`}>
+                    {IconComponent && <IconComponent />}
+                    <h3 className={`font-bold text-lg ${colorClass.replace('bg-', 'text-').replace('100', '800')}`}>{title}</h3>
+                </div>
+                <div className="p-5 flex-grow">
+                    {children}
+                </div>
+            </div>
+        );
+
+        // Component Badge reutilitzable
+        const Badge = ({ children, color }) => {
+            const colors = {
+                blue: 'bg-blue-100 text-blue-800 border-blue-200',
+                green: 'bg-green-100 text-green-800 border-green-200',
+                red: 'bg-red-100 text-red-800 border-red-200',
+                yellow: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                gray: 'bg-gray-100 text-gray-800 border-gray-200',
+                purple: 'bg-purple-100 text-purple-800 border-purple-200'
+            };
+            return (
+                <span className={`px-2 py-1 text-xs font-medium rounded-md border ${colors[color]} inline-flex items-center gap-1`}>
+                    {children}
+                </span>
+            );
+        };
+
+        function App() {
+            const [activeTab, setActiveTab] = React.useState('calendari');
+            const [raInputType, setRaInputType] = React.useState('ponderat');
+            const [raScore, setRaScore] = React.useState('');
+            const [calculatedQprov, setCalculatedQprov] = React.useState(null);
+
+            // Refresca les icones quan canvia la pestanya o l'estat per assegurar-se que es renderitzen
+            React.useEffect(() => {
+                lucide.createIcons();
+            }, [activeTab, raInputType, calculatedQprov]);
+
+            const handleCalculateQprov = (val) => {
+                const num = parseFloat(val);
+                if (isNaN(num) || num < 0) {
+                    setCalculatedQprov(null);
+                    return;
+                }
+
+                if (raInputType === 'ponderat') {
+                    if (num > 9) {
+                        setCalculatedQprov({ error: "La nota ponderada (90%) no pot ser superior a 9." });
+                        return;
+                    }
+                    const result = (num * 10) / 9;
+                    setCalculatedQprov({ qprov: result.toFixed(2), raw: num });
+                } else {
+                    if (num > 10) {
+                        setCalculatedQprov({ error: "La nota mitjana de RAs no pot ser superior a 10." });
+                        return;
+                    }
+                    const ponderat = num * 0.9;
+                    const result = (ponderat * 10) / 9;
+                    setCalculatedQprov({ qprov: result.toFixed(2), raw: ponderat.toFixed(2) });
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 pb-12">
+                    {/* HEADER */}
+                    <header className="bg-gradient-to-r from-blue-900 to-indigo-800 py-10 px-4 md:px-8 text-white shadow-lg relative overflow-hidden">
+                        <div className="max-w-6xl mx-auto relative z-10">
+                            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-semibold uppercase tracking-wider">
+                                    Segona Convocatòria (Juny)
+                                </span>
+                                <span className="text-blue-300 text-sm font-medium flex items-center gap-1.5">
+                                    <Calendar /> Organització i Avaluació
+                                </span>
+                            </div>
+                            <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-4">
+                                Guia de Juntes i <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">Avaluació a Esfera</span>
+                            </h1>
+                            <p className="text-blue-100 max-w-3xl text-sm md:text-base leading-relaxed">
+                                Organització del tancament de curs, terminis de secretaria, lliurament de documentació, butlletins i guia de qualificacions per a mòduls professionals.
+                            </p>
+
+                            {/* PESTANYES INTERACTIVES */}
+                            <div className="mt-8 flex flex-wrap gap-2 border-b border-blue-800 pb-px">
+                                <button 
+                                    onClick={() => setActiveTab('calendari')}
+                                    className={`px-4 py-2.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'calendari' ? 'border-cyan-400 text-cyan-300 bg-blue-950/20' : 'border-transparent text-blue-200 hover:text-white'}`}
+                                >
+                                    📆 Calendari i Gestió
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('avaluacio')}
+                                    className={`px-4 py-2.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'avaluacio' ? 'border-cyan-400 text-cyan-300 bg-blue-950/20' : 'border-transparent text-blue-200 hover:text-white'}`}
+                                >
+                                    📝 Normativa Esfera
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('tutors1r')}
+                                    className={`px-4 py-2.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'tutors1r' ? 'border-cyan-400 text-cyan-300 bg-blue-950/20' : 'border-transparent text-blue-200 hover:text-white'}`}
+                                >
+                                    🎓 Tutors/es 1r Curs
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('tutors2n')}
+                                    className={`px-4 py-2.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'tutors2n' ? 'border-cyan-400 text-cyan-300 bg-blue-950/20' : 'border-transparent text-blue-200 hover:text-white'}`}
+                                >
+                                    🎓 Tutors/es 2n Curs
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* MAIN CONTENT AREA */}
+                    <main className="max-w-6xl mx-auto px-4 md:px-8 py-8">
+                        
+                        {/* PESTANYA: CALENDARI */}
+                        {activeTab === 'calendari' && (
+                            <div className="space-y-8">
+                                <div className="p-5 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-4">
+                                    <AlertOctagon />
+                                    <div>
+                                        <h4 className="font-bold text-blue-800 text-sm uppercase tracking-wide">ASSISTÈNCIA OBLIGATÒRIA</h4>
+                                        <p className="text-sm text-slate-700 mt-1 leading-relaxed">
+                                            A les juntes d'avaluació de final de Cicle Formatiu hi ha d'assistir <strong>tot l'equip docent de 1r i 2n curs</strong> per avaluar els MP que tenen assignats (inclosos els mòduls de 1r que tenien la EM pendent).
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="relative border-l-2 border-slate-200 pl-6 space-y-8 ml-3">
+                                    {/* Pas 1 */}
+                                    <div className="relative">
+                                        <div className="absolute -left-[31px] top-1.5 bg-blue-600 w-4 h-4 rounded-full ring-4 ring-white"></div>
+                                        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
+                                            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                                <span className="text-sm font-bold text-blue-600 uppercase tracking-wide">Pas 1</span>
+                                                <Badge color="blue">A partir del 5 de Juny</Badge>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                                <FileSignature /> Introducció de qualificacions
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-1">
+                                                Tot el professorat ha d'introduir les qualificacions a Esfera de manera regular.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Pas 2 */}
+                                    <div className="relative">
+                                        <div className="absolute -left-[31px] top-1.5 bg-yellow-500 w-4 h-4 rounded-full ring-4 ring-white"></div>
+                                        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
+                                            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                                <span className="text-sm font-bold text-yellow-600 uppercase tracking-wide">Pas 2</span>
+                                                <Badge color="yellow">9 de Juny</Badge>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                                <Clock /> Juntes d'Avaluació (2a Convocatòria)
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-1 mb-3">
+                                                Horaris de les sessions de final de cicle:
+                                            </p>
+                                            <div className="flex gap-4 flex-wrap">
+                                                <div className="bg-slate-50 px-3 py-2 rounded border border-slate-200 text-xs">
+                                                    <span className="block text-slate-500 uppercase font-semibold">Torn de Matí</span>
+                                                    <strong className="text-slate-800 text-sm">08:00 h - 14:20 h</strong>
+                                                </div>
+                                                <div className="bg-slate-50 px-3 py-2 rounded border border-slate-200 text-xs">
+                                                    <span className="block text-slate-500 uppercase font-semibold">Torn de Tarda</span>
+                                                    <strong className="text-slate-800 text-sm">15:20 h - 19:20 h</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Pas 3 */}
+                                    <div className="relative">
+                                        <div className="absolute -left-[31px] top-1.5 bg-green-500 w-4 h-4 rounded-full ring-4 ring-white"></div>
+                                        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
+                                            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                                <span className="text-sm font-bold text-green-600 uppercase tracking-wide">Pas 3</span>
+                                                <Badge color="green">Fins al 10 de Juny (11:00h)</Badge>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                                <CheckCircle2 /> Comunicació de finalització (Tutors)
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-1 mb-3">
+                                                Els tutors/es han de notificar immediatament la fi de la junta mitjançant correu als destinataris de secretaria:
+                                            </p>
+                                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col gap-1 text-xs font-mono text-indigo-700">
+                                                <span>• secretaria@iesebre.com</span>
+                                                <span>• manelmacias@iesebre.com</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Pas 4 */}
+                                    <div className="relative">
+                                        <div className="absolute -left-[31px] top-1.5 bg-indigo-500 w-4 h-4 rounded-full ring-4 ring-white"></div>
+                                        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
+                                            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                                <span className="text-sm font-bold text-indigo-600 uppercase tracking-wide">Pas 4</span>
+                                                <Badge color="blue">Del 10 al 12 de Juny</Badge>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                                <FileSignature /> Signatura de les Actes
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-1">
+                                                <strong>Recollida (Tutors):</strong> Rebreu un correu quan estiguin revisades i tancades de secretaria.
+                                            </p>
+                                            <p className="text-sm text-slate-600 mt-2">
+                                                <strong>Signatura (Equip Docent):</strong> S'han de signar formalment durant els dies <strong>10, 11 i 12 de juny</strong>.
+                                            </p>
+                                            <p className="text-sm text-slate-600 mt-2">
+                                                <strong>Lliurament (Tutors):</strong> Retornar les actes físicament signades a secretaria com a molt tard el <span className="font-semibold text-emerald-600">15 de juny</span>.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Pas 5 */}
+                                    <div className="relative">
+                                        <div className="absolute -left-[31px] top-1.5 bg-purple-500 w-4 h-4 rounded-full ring-4 ring-white"></div>
+                                        <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
+                                            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                                <span className="text-sm font-bold text-purple-600 uppercase tracking-wide">Pas 5</span>
+                                                <Badge color="purple">12 i 15 de Juny</Badge>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                                <Info /> Lliurament de Butlletins
+                                            </h3>
+                                            <p className="text-sm text-slate-600 mt-1 mb-3">
+                                                Es lliuren telemàticament (iEduca o correu oficial) una vegada estiguin signats electrònicament:
+                                            </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                                    <span className="block text-xs font-bold text-blue-700 uppercase mb-1">Grup A: 12 de Juny</span>
+                                                    <p className="text-xs text-slate-700 font-medium">IFE, CAI i 2n CFGM</p>
+                                                    <span className="text-[10px] text-slate-500 block mt-1">Hores: 11:30h i 15:00h</span>
+                                                </div>
+                                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                                    <span className="block text-xs font-bold text-purple-700 uppercase mb-1">Grup B: 15 de Juny</span>
+                                                    <p className="text-xs text-slate-700 font-medium">1r CFGM, 1r CFGS, 2n CFGS i CE</p>
+                                                    <span className="text-[10px] text-slate-500 block mt-1">Hores: 11:30h i 15:00h</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {/* PESTANYA: AVALUACIÓ ESFERA */}
+                        {activeTab === 'avaluacio' && (
+                            <div className="space-y-8">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* MP Sense EM */}
+                                    <Card title="A) MP SENSE hores EM" icon={BookOpen} colorClass="bg-blue-100 text-blue-800" borderColorClass="border-blue-500">
+                                        <ul className="space-y-3 text-sm text-slate-600">
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-blue-600 mt-0.5" />
+                                                <span><strong>Avaluar RAs:</strong> no assolit, assolit (5-10), pendent o en procés.</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-blue-600 mt-0.5" />
+                                                <span><strong>Tancament obligatori:</strong> Cal desar un valor definitiu a Esfera: <Badge color="green">Aprovat (5-10)</Badge>, <Badge color="red">Suspès (1-4)</Badge> o <Badge color="gray">NP (No Presentat)</Badge>.</span>
+                                            </li>
+                                        </ul>
+                                    </Card>
+
+                                    {/* MP Amb EM */}
+                                    <Card title="B) MP AMB hores EM" icon={Briefcase} colorClass="bg-indigo-100 text-indigo-800" borderColorClass="border-indigo-500">
+                                        <ul className="space-y-3 text-sm text-slate-600">
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-indigo-600 mt-0.5" />
+                                                <span><strong>Avaluar RAs:</strong> no assolit, assolit (5-10), pendent o en procés.</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-indigo-600 mt-0.5" />
+                                                <span><strong>Avaluar EM:</strong> no assolit, assolit (5-10), pendent, en procés, o <Badge color="purple">exempt</Badge> (sense efectes a la nota final).</span>
+                                            </li>
+                                        </ul>
+                                    </Card>
+                                </div>
+
+                                {/* Casos d'avaluació amb EM */}
+                                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                    <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                        <AlertTriangle /> Tres Casos de Tancament de MP amb EM
+                                    </h3>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="bg-green-50/50 border border-green-200 rounded-lg p-5">
+                                            <span className="text-xs font-bold text-green-700 uppercase tracking-wider block mb-1">Cas 1</span>
+                                            <h4 className="font-bold text-slate-800 mb-2">Tot assolit</h4>
+                                            <p className="text-xs text-slate-600 mb-3">Tant la EM com els RAs estan superats.</p>
+                                            <div className="bg-white p-3 rounded border border-green-100 text-xs">
+                                                <strong>Fórmula:</strong> 10% EM + 90% RAs
+                                                <div className="mt-2 flex gap-1 flex-wrap">
+                                                    <Badge color="green">Aprovat (5-10)</Badge>
+                                                    <Badge color="red">Suspès (1-4)</Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-yellow-50/50 border border-yellow-300 rounded-lg p-5 ring-1 ring-yellow-400">
+                                            <span className="text-xs font-bold text-yellow-700 uppercase tracking-wider block mb-1">Cas 2</span>
+                                            <h4 className="font-bold text-slate-800 mb-2">EM pendent / en procés</h4>
+                                            <p className="text-xs text-slate-600 mb-3">L'alumne té tots els RAs superats però la EM no.</p>
+                                            <div className="bg-white p-3 rounded border border-yellow-200 text-xs space-y-2">
+                                                <p><strong>Qualificació:</strong> <Badge color="yellow">PQ</Badge></p>
+                                                <p className="text-[10px] text-red-600 font-bold uppercase">• NOVETAT OBLIGATÒRIA:</p>
+                                                <p className="text-[10px] text-slate-600">Cal introduir la qualificació provisional <strong>Qprov</strong> (sobre base 10) a Esfera.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-red-50/50 border border-red-200 rounded-lg p-5">
+                                            <span className="text-xs font-bold text-red-700 uppercase tracking-wider block mb-1">Cas 3</span>
+                                            <h4 className="font-bold text-slate-800 mb-2">Qualsevol RA suspès</h4>
+                                            <p className="text-xs text-slate-600 mb-3">Independentment del resultat de la EM.</p>
+                                            <div className="bg-white p-3 rounded border border-red-100 text-xs">
+                                                <strong>Fórmula:</strong> 10% EM + 90% RAs
+                                                <div className="mt-2">
+                                                    <Badge color="red">Suspès (1-4)</Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CALCULADORA INTERACTIVA DE QPROV */}
+                                <div className="bg-gradient-to-br from-blue-900 to-indigo-950 text-white rounded-xl p-6 shadow-md">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2 bg-white/10 rounded-lg"><Calculator /></div>
+                                        <div>
+                                            <h3 className="text-lg font-bold">Calculadora de Qprov per a Esfera</h3>
+                                            <p className="text-xs text-blue-200">Convertidor de nota d'avaluació de RAs a nota sobre base 10 de manera immediata.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                                        <div className="space-y-4">
+                                            <div>
+                                                <span className="text-xs text-blue-200 uppercase font-bold block mb-2">Tipus d'entrada de la nota</span>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button 
+                                                        onClick={() => { setRaInputType('ponderat'); setRaScore(''); setCalculatedQprov(null); }}
+                                                        className={`px-3 py-2 text-xs font-semibold rounded border transition ${raInputType === 'ponderat' ? 'bg-cyan-500 border-cyan-400 text-slate-900' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                                                    >
+                                                        Nota Ponderada (sobre 9)
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => { setRaInputType('raw'); setRaScore(''); setCalculatedQprov(null); }}
+                                                        className={`px-3 py-2 text-xs font-semibold rounded border transition ${raInputType === 'raw' ? 'bg-cyan-500 border-cyan-400 text-slate-900' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                                                    >
+                                                        Nota RAs directa (sobre 10)
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <span className="text-xs text-blue-200 uppercase font-bold block mb-2">
+                                                    {raInputType === 'ponderat' ? 'Nota ponderada dels RAs (sobre 9)' : 'Nota mitjana dels RAs (sobre 10)'}
+                                                </span>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01"
+                                                    placeholder={raInputType === 'ponderat' ? 'Exemple: 7.20' : 'Exemple: 8.00'}
+                                                    value={raScore}
+                                                    onChange={(e) => {
+                                                        setRaScore(e.target.value);
+                                                        handleCalculateQprov(e.target.value);
+                                                    }}
+                                                    className="w-full bg-slate-900/60 border border-white/10 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-950/40 border border-white/5 rounded-lg p-4 flex flex-col justify-center items-center text-center h-full min-h-[160px]">
+                                            {calculatedQprov === null && (
+                                                <div className="text-blue-200/50 text-xs">
+                                                    <i data-lucide="calculator" class="w-8 h-8 mx-auto mb-2 opacity-30"></i>
+                                                    Introdueix una nota per realitzar el càlcul automàtic de Qprov.
+                                                </div>
+                                            )}
+
+                                            {calculatedQprov && calculatedQprov.error && (
+                                                <div className="text-red-400 text-xs font-semibold flex items-center gap-1.5">
+                                                    <XCircle className="w-5 h-5 flex-shrink-0" /> {calculatedQprov.error}
+                                                </div>
+                                            )}
+
+                                            {calculatedQprov && !calculatedQprov.error && (
+                                                <div className="space-y-1">
+                                                    <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider block">Nota Qprov per a Esfera</span>
+                                                    <strong className="text-4xl font-black text-emerald-400 block">{calculatedQprov.qprov}</strong>
+                                                    
+                                                    <div className="pt-2 border-t border-white/10 text-[10px] text-blue-200 text-left space-y-0.5">
+                                                        {raInputType === 'ponderat' ? (
+                                                            <>
+                                                                <p><strong>Càlcul:</strong> (Nota Ponderada × 10) / 9</p>
+                                                                <p>({calculatedQprov.raw} × 10) / 9 = {calculatedQprov.qprov}</p>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <p>La nota original era sobre 10.</p>
+                                                                <p>Valor equivalent en Qprov: <strong>{calculatedQprov.qprov}</strong></p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* RECORDATORI OBLIGATORI DE NOTA QPROV */}
+                                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start gap-3">
+                                    <Info className="w-5 h-5 text-yellow-600 mt-0.5" />
+                                    <p className="text-xs text-slate-700 leading-relaxed">
+                                        <strong>RECORDATORI IMPORTANT:</strong> Cal indicar obligatòriament la qualificació <strong>Qprov</strong> si tots els Resultats d'Aprenentatge del Mòdul Professional estan superats però l'Estada a l'Empresa (EM) està pendent o en procés de realització. Aquesta nota és sobre una base de 10.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {/* PESTANYA: TUTORS 1R CURS */}
+                        {activeTab === 'tutors1r' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                                    <div className="p-4 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+                                        <Users />
+                                        <p className="text-blue-800 font-semibold">Tutors/es de 1r Curs: Fase 3 (Resum de l'Avaluació)</p>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                                        
+                                        {/* Opció 1 */}
+                                        <div className="p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <Clock className="w-6 h-6 text-yellow-600" />
+                                                <h3 className="font-bold text-lg text-slate-800">Pendent de la següent avaluació</h3>
+                                            </div>
+                                            <p className="text-slate-600 mb-4 text-sm">L'alumne té <strong>MP pendents de superar</strong>.</p>
+                                            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                                                <p className="text-xs text-blue-700">
+                                                    Voleu poder avaluar l'alumne/a en la següent avaluació (2a convocatòria). <strong>Aquest alumne tornarà a aparèixer.</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Opció 2 */}
+                                        <div className="p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                                <h3 className="font-bold text-lg text-slate-800">Accedeix al curs següent</h3>
+                                            </div>
+                                            <p className="text-slate-600 mb-4 text-sm">L'alumne ja ha <strong>superat tots els MP de 1r</strong> (o el 60% d'hores d'aquests).</p>
+                                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                                                <p className="text-xs text-red-700">
+                                                    No s'avaluarà més aquest curs (ni 2a conv, ni extraord.). <strong>NO tornarà a llistar-se</strong>. El sistema obre matrícula al juliol.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Opció 3 */}
+                                        <div className="p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <AlertTriangle className="w-6 h-6 text-orange-600" />
+                                                <h3 className="font-bold text-lg text-slate-800">Roman al mateix curs</h3>
+                                            </div>
+                                            <p className="text-slate-600 mb-4 text-sm">L'alumne té MP pendents de superar i ha de repetir curs l'any que ve.</p>
+                                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded mb-4">
+                                                <p className="text-xs text-red-700">
+                                                    No s'avaluarà més aquest curs. <strong>NO tornarà a llistar-se</strong> a Esfera.
+                                                </p>
+                                            </div>
+                                            <div className="inline-flex items-center px-2.5 py-1 bg-red-100 text-red-800 text-xs font-bold rounded border border-red-300">
+                                                <XCircle className="w-4 h-4 mr-1 text-red-700" /> INCORRECTE a 1a Conv.
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+
+                                    {/* IMPORTANT AL FINAL DE TUTORS 1R */}
+                                    <div className="bg-slate-800 p-5 border-t border-slate-700 flex flex-col md:flex-row items-start md:items-center gap-3 text-white">
+                                        <Info className="w-8 h-8 text-blue-400 flex-shrink-0" />
+                                        <div>
+                                            <strong className="text-blue-300 uppercase text-xs tracking-wider block mb-0.5">Important</strong>
+                                            <p className="text-sm">
+                                                Mentre quedin sessions d'avaluació pendents de realitzar durant el curs, cal indicar a l'alumne/a <strong>"Pendent de la següent avaluació"</strong>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PESTANYA: TUTORS 2N CURS */}
+                        {activeTab === 'tutors2n' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                                    <div className="p-4 bg-teal-50 border-b border-teal-100 flex items-center gap-2">
+                                        <GraduationCap />
+                                        <p className="text-teal-800 font-semibold">Tutors/es de 2n Curs: Fase 3 (Resum de l'Avaluació)</p>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                                        
+                                        {/* Opció 1 */}
+                                        <div className="p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                                <h3 className="font-bold text-lg text-slate-800">Obté el títol del CF</h3>
+                                            </div>
+                                            <p className="text-slate-600 mb-4 text-sm">L'alumne té <strong>tots els MP aprovats</strong> i finalitza el cicle.</p>
+                                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                                                <p className="text-xs text-red-700">
+                                                    No s'avaluarà més aquest curs. <strong>NO tornarà a llistar-se</strong>. Si hi ha qualsevol tema pendent d'avaluar, NO utilitzeu aquesta opció.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Opció 2 */}
+                                        <div className="p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <Clock className="w-6 h-6 text-yellow-600" />
+                                                <h3 className="font-bold text-lg text-slate-800">Pendent de la següent avaluació</h3>
+                                            </div>
+                                            <p className="text-slate-600 mb-4 text-sm">L'alumne té <strong>MP o EM pendents de superar</strong>.</p>
+                                            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                                                <p className="text-xs text-blue-700">
+                                                    Voleu poder avaluar l'alumne/a en les següents juntes de juny, juliol o setembre. <strong>L'alumne tornarà a aparèixer.</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Opció 3 */}
+                                        <div className="p-6">
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <AlertTriangle className="w-6 h-6 text-orange-600" />
+                                                <h3 className="font-bold text-lg text-slate-800">Roman al mateix curs</h3>
+                                            </div>
+                                            <p className="text-slate-600 mb-4 text-sm">Significa que <strong>repeteix ja segur</strong> el 2n curs el proper any.</p>
+                                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                                                <p className="text-xs text-red-700">
+                                                    Ja no s'avaluarà en cap sessió d'aquest curs. <strong>NO tornarà a aparèixer</strong> i el sistema l'envia a matrícula del nou curs.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    </main>
+
+                    {/* FOOTER */}
+                    <footer className="max-w-6xl mx-auto px-4 md:px-8 mt-12 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
+                        <p>© 2026 Institut de l'Ebre — Tots els drets reservats.</p>
+                        <p className="mt-1">Creat per a l'organització interna del professorat del centre.</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        // Renderitzem l'App React a l'HTML
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
